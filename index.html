@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rectify</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 60px 16px; }
+    .card { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 32px; width: 100%; max-width: 420px; }
+    h1 { font-size: 1.6rem; color: #ff4d4d; margin-bottom: 24px; letter-spacing: 2px; text-transform: uppercase; }
+    h2 { font-size: 1rem; color: #aaa; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+    input { width: 100%; padding: 10px 14px; background: #111; border: 1px solid #333; border-radius: 6px; color: #e0e0e0; font-size: 0.95rem; margin-bottom: 12px; }
+    button { width: 100%; padding: 10px; background: #ff4d4d; border: none; border-radius: 6px; color: #fff; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+    button:hover { background: #e03333; }
+    .msg { margin-top: 14px; padding: 10px 14px; border-radius: 6px; font-size: 0.9rem; display: none; }
+    .msg.ok { background: #1a3a1a; color: #4caf50; border: 1px solid #2e7d32; }
+    .msg.err { background: #3a1a1a; color: #ef5350; border: 1px solid #b71c1c; }
+    .divider { border: none; border-top: 1px solid #2a2a2a; margin: 28px 0; }
+    .user-info { background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 0.9rem; display: none; }
+    .user-info span { color: #ff4d4d; font-weight: bold; }
+    #prop-section { display: none; }
+    #feedback-section { display: none; }
+    .score-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+    .score-row label { width: 100px; font-size: 0.85rem; color: #aaa; flex-shrink: 0; }
+    .score-row select { flex: 1; padding: 10px 14px; background: #111; border: 1px solid #333; border-radius: 6px; color: #e0e0e0; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>Rectify</h1>
+
+  <div class="user-info" id="user-info">
+    Logged in as <span id="info-user"></span> &mdash; Rep: <span id="info-rep"></span>
+  </div>
+
+  <div id="login-section">
+    <h2>Login to Rappad</h2>
+    <input type="text" id="username" placeholder="Username" autocomplete="off">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Log In</button>
+    <div class="msg" id="login-msg"></div>
+  </div>
+
+  <hr class="divider">
+
+  <hr class="divider">
+
+  <div id="save-rap-section" style="display:none">
+    <h2>Save a Rap</h2>
+    <input type="text" id="rap-title" placeholder="Title">
+    <textarea id="rap-lyrics" placeholder="Lyrics..." style="width:100%;padding:10px 14px;background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-size:0.95rem;margin-bottom:12px;resize:vertical;min-height:120px"></textarea>
+    <select id="rap-visibility" style="width:100%;padding:10px 14px;background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-size:0.95rem;margin-bottom:12px">
+      <option value="public">Public</option>
+      <option value="unlisted">Unlisted</option>
+      <option value="private">Private</option>
+    </select>
+    <button onclick="saveRap()">Save Rap</button>
+    <div class="msg" id="save-rap-msg"></div>
+  </div>
+
+  <hr class="divider">
+
+  <div id="prop-section">
+    <h2>Prop a Rap</h2>
+    <input type="text" id="rap-id" placeholder="Rap ID (e.g. 1496851)">
+    <button onclick="propRap()">Prop</button>
+    <div class="msg" id="prop-msg"></div>
+  </div>
+
+  <hr class="divider">
+
+  <div id="bio-section" style="display:none">
+    <h2>Update Bio</h2>
+    <textarea id="bio-text" placeholder="New bio..." style="width:100%;padding:10px 14px;background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;font-size:0.95rem;margin-bottom:12px;resize:vertical;min-height:80px"></textarea>
+    <button onclick="updateBio()">Update Bio</button>
+    <div class="msg" id="bio-msg"></div>
+  </div>
+
+  <hr class="divider">
+
+  <div id="feedback-section">
+    <h2>Leave Feedback</h2>
+    <input type="text" id="fb-rap-id" placeholder="Rap ID (e.g. 1496831)">
+    <div class="score-row"><label>Lyrics</label><select id="fb-lyrics"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option></select></div>
+    <div class="score-row"><label>Delivery</label><select id="fb-delivery"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option></select></div>
+    <div class="score-row"><label>Production</label><select id="fb-production"><option>1</option><option>2</option><option>3</option><option>4</option><option selected>5</option></select></div>
+    <button onclick="sendFeedback()">Submit Feedback</button>
+    <div class="msg" id="feedback-msg"></div>
+  </div>
+</div>
+
+<script>
+const PROXY = "";
+
+// Generate a simple session id stored in sessionStorage (not persisted)
+if (!sessionStorage.getItem("rectify_sid")) {
+  sessionStorage.setItem("rectify_sid", crypto.randomUUID());
+}
+const SID = sessionStorage.getItem("rectify_sid");
+let csrfToken = null;
+let loggedInUser = null;
+
+function showMsg(id, text, ok) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = "msg " + (ok ? "ok" : "err");
+  el.style.display = "block";
+}
+
+async function login() {
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value;
+  if (!username || !password) return showMsg("login-msg", "Enter username and password.", false);
+
+  showMsg("login-msg", "Logging in…", true);
+
+  const res = await fetch(`${PROXY}/api/proxy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "login", username, password, sessionId: SID }),
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    csrfToken = data.csrf_token;
+    loggedInUser = data.username;
+    document.getElementById("info-user").textContent = data.username;
+    document.getElementById("info-rep").textContent = data.reputation;
+    document.getElementById("user-info").style.display = "block";
+    document.getElementById("save-rap-section").style.display = "block";
+    document.getElementById("prop-section").style.display = "block";
+    document.getElementById("bio-section").style.display = "block";
+    document.getElementById("feedback-section").style.display = "block";
+    document.getElementById("login-section").style.display = "none";
+    showMsg("login-msg", "Logged in!", true);
+  } else {
+    showMsg("login-msg", data.error || "Login failed.", false);
+  }
+}
+
+async function saveRap() {
+  const title = document.getElementById("rap-title").value.trim();
+  const lyrics = document.getElementById("rap-lyrics").value.trim();
+  const visibility = document.getElementById("rap-visibility").value;
+  if (!title || !lyrics) return showMsg("save-rap-msg", "Enter a title and lyrics.", false);
+
+  showMsg("save-rap-msg", "Saving…", true);
+
+  const res = await fetch(`${PROXY}/api/proxy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "save-rap", title, lyrics, visibility, sessionId: SID, csrfToken }),
+  });
+
+  const data = await res.json();
+  data.success ? showMsg("save-rap-msg", `Rap saved! ${data.id ? "ID: " + data.id : ""}`.trim(), true)
+               : showMsg("save-rap-msg", data.error || "Failed.", false);
+}
+
+async function updateBio() {
+  const description = document.getElementById("bio-text").value.trim();
+  if (!description) return showMsg("bio-msg", "Enter a bio.", false);
+
+  showMsg("bio-msg", "Updating bio…", true);
+
+  const res = await fetch(`${PROXY}/api/proxy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "bio", description, sessionId: SID, csrfToken, username: loggedInUser }),
+  });
+
+  const data = await res.json();
+  data.success ? showMsg("bio-msg", "Bio updated!", true) : showMsg("bio-msg", data.error || "Failed.", false);
+}
+
+async function sendFeedback() {
+  const rapId = document.getElementById("fb-rap-id").value.trim();
+  const lyrics = document.getElementById("fb-lyrics").value;
+  const delivery = document.getElementById("fb-delivery").value;
+  const production = document.getElementById("fb-production").value;
+  if (!rapId) return showMsg("feedback-msg", "Enter a rap ID.", false);
+
+  showMsg("feedback-msg", "Submitting feedback…", true);
+
+  const res = await fetch(`${PROXY}/api/proxy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "feedback", rapId, lyrics, delivery, production, sessionId: SID, csrfToken }),
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    const fb = typeof data.feedback === "string" ? JSON.parse(data.feedback) : data.feedback;
+    showMsg("feedback-msg", `Feedback sent! Overall: ${fb.overall_score ?? "?"}`, true);
+  } else {
+    showMsg("feedback-msg", data.error || "Feedback failed.", false);
+  }
+}
+
+async function propRap() {
+  const rapId = document.getElementById("rap-id").value.trim();
+  if (!rapId) return showMsg("prop-msg", "Enter a rap ID.", false);
+
+  showMsg("prop-msg", "Sending prop…", true);
+
+  const res = await fetch(`${PROXY}/api/proxy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "prop", rapId, sessionId: SID, csrfToken }),
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    showMsg("prop-msg", `Propped! Action: ${data.action} | New rep: ${data.reputation}`, true);
+  } else {
+    showMsg("prop-msg", data.error || "Prop failed.", false);
+  }
+}
+</script>
+</body>
+</html>
