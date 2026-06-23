@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rectify — Docs</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; padding: 60px 16px; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    nav { display: flex; gap: 20px; margin-bottom: 40px; align-items: center; }
+    nav a { color: #ff4d4d; text-decoration: none; font-size: 0.9rem; }
+    nav a:hover { text-decoration: underline; }
+    nav .brand { font-size: 1.4rem; font-weight: bold; color: #ff4d4d; letter-spacing: 2px; text-transform: uppercase; margin-right: auto; }
+    h1 { font-size: 1.5rem; color: #ff4d4d; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+    h2 { font-size: 1.1rem; color: #ff4d4d; margin: 40px 0 12px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #2a2a2a; padding-bottom: 8px; }
+    h3 { font-size: 0.95rem; color: #e0e0e0; margin: 24px 0 8px; }
+    p { font-size: 0.9rem; color: #bbb; line-height: 1.7; margin-bottom: 12px; }
+    .subtitle { color: #777; font-size: 0.88rem; margin-bottom: 40px; }
+    .endpoint { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+    .endpoint .method { display: inline-block; padding: 2px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; margin-right: 10px; }
+    .method.post { background: #1a3a1a; color: #4caf50; }
+    .method.put  { background: #1a2a3a; color: #42a5f5; }
+    .method.get  { background: #2a2a1a; color: #ffca28; }
+    .url { font-family: monospace; font-size: 0.9rem; color: #ff4d4d; }
+    .desc { font-size: 0.88rem; color: #999; margin: 10px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+    th { text-align: left; color: #777; font-weight: normal; padding: 6px 10px; border-bottom: 1px solid #2a2a2a; }
+    td { padding: 6px 10px; border-bottom: 1px solid #1e1e1e; color: #ccc; font-family: monospace; }
+    td:first-child { color: #ff4d4d; }
+    td:last-child { font-family: 'Segoe UI', sans-serif; color: #999; }
+    pre { background: #111; border: 1px solid #2a2a2a; border-radius: 6px; padding: 14px; font-size: 0.82rem; color: #ccc; overflow-x: auto; margin-top: 10px; line-height: 1.6; }
+    .tag { display: inline-block; background: #2a1a1a; color: #ff4d4d; border-radius: 4px; padding: 1px 8px; font-size: 0.78rem; margin-right: 6px; }
+    .tag.auth { background: #1a1a2a; color: #7c83f7; }
+    .note { background: #1a1a1a; border-left: 3px solid #ff4d4d; padding: 12px 16px; border-radius: 0 6px 6px 0; font-size: 0.87rem; color: #bbb; margin: 16px 0; }
+    .section-intro { font-size: 0.88rem; color: #888; margin-bottom: 24px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <span class="brand">Rectify</span>
+    <a href="/">App</a>
+    <a href="/docs.html">Docs</a>
+    <a href="https://github.com/sigaa/rectify" target="_blank">GitHub</a>
+  </nav>
+
+  <h1>Documentation</h1>
+  <p class="subtitle">Rectify usage guide + Rappad internal API reference</p>
+
+  <!-- ===================== RECTIFY DOCS ===================== -->
+  <h2>Rectify</h2>
+  <p class="section-intro">
+    Rectify is an unofficial multi-purpose tool for Rappad. It communicates with Rappad's internal API through a server-side proxy, bypassing CORS restrictions. No data is saved — sessions exist only in memory and are cleared when the tab closes.
+  </p>
+
+  <h3>How it works</h3>
+  <p>Your browser talks to the Rectify proxy (<code>/api/proxy</code>), which makes requests to Rappad server-side using a per-session cookie jar. This means Rappad sees a normal authenticated request and CORS is never an issue.</p>
+
+  <div class="note">Sessions are identified by a UUID stored in <code>sessionStorage</code>. Closing the tab ends the session. Nothing is written to a database or disk.</div>
+
+  <h3>Features</h3>
+  <table>
+    <tr><th>Feature</th><th>Auth Required</th><th>Description</th></tr>
+    <tr><td>View Profile</td><td>No</td><td>Look up any Rappad user by username</td></tr>
+    <tr><td>Log In</td><td>—</td><td>Authenticate with your Rappad credentials</td></tr>
+    <tr><td>Create Account</td><td>—</td><td>Register a new Rappad account</td></tr>
+    <tr><td>Save Rap</td><td>Yes</td><td>Publish a rap as public, unlisted, or private</td></tr>
+    <tr><td>Prop a Rap</td><td>Yes</td><td>Prop any rap by its ID</td></tr>
+    <tr><td>Update Bio</td><td>Yes</td><td>Set your profile description</td></tr>
+    <tr><td>Leave Feedback</td><td>Yes</td><td>Score a rap on lyrics, delivery, and production (1–5)</td></tr>
+  </table>
+
+  <h3>Proxy endpoint</h3>
+  <p>All actions go through a single endpoint:</p>
+  <pre>POST /api/proxy
+Content-Type: application/json
+
+{ "action": "...", "sessionId": "uuid", ... }</pre>
+
+  <p>The <code>sessionId</code> is auto-generated by the frontend and must be included in every request. The <code>csrfToken</code> returned on login must be passed with any action that modifies data.</p>
+
+  <!-- ===================== RAPPAD API DOCS ===================== -->
+  <h2>Rappad Internal API</h2>
+  <p class="section-intro">
+    Rappad does not have a public API. These endpoints were discovered by inspecting network requests in browser DevTools. They are undocumented and unofficial — use at your own risk. All endpoints are on <code>https://www.rappad.co</code>.
+  </p>
+
+  <div class="note">All state-changing requests require a valid <code>x-csrf-token</code> header and an active session cookie. The CSRF token is returned on login/register and changes each session.</div>
+
+  <!-- Sign In -->
+  <div class="endpoint">
+    <span class="method post">POST</span><span class="url">/users/sign_in</span>
+    <span class="tag">auth</span>
+    <p class="desc">Authenticate as an existing user. Returns user info and a new CSRF token.</p>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+      <tr><td>user[login]</td><td>string</td><td>Username or email</td></tr>
+      <tr><td>user[password]</td><td>string</td><td></td></tr>
+      <tr><td>user[remember_me]</td><td>1 | 0</td><td></td></tr>
+      <tr><td>commit</td><td>string</td><td>Must be "Log In"</td></tr>
+    </table>
+    <pre>{
+  "success": true,
+  "username": "wasp",
+  "email": "user@example.com",
+  "reputation": 4643,
+  "picture": "https://s3.amazonaws.com/rappad/...",
+  "csrf_token": "..."
+}</pre>
+  </div>
+
+  <!-- Register -->
+  <div class="endpoint">
+    <span class="method post">POST</span><span class="url">/users</span>
+    <span class="tag">auth</span>
+    <p class="desc">Create a new Rappad account. Username is auto-generated as <code>user{id}</code>.</p>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+      <tr><td>user[email]</td><td>string</td><td></td></tr>
+      <tr><td>user[password]</td><td>string</td><td></td></tr>
+      <tr><td>commit</td><td>string</td><td>Must be "Create Account"</td></tr>
+    </table>
+    <pre>{
+  "success": true,
+  "username": "user394572192",
+  "reputation": 0,
+  "csrf_token": "..."
+}</pre>
+  </div>
+
+  <!-- Props -->
+  <div class="endpoint">
+    <span class="method post">POST</span><span class="url">/api/props</span>
+    <span class="tag auth">requires auth</span>
+    <p class="desc">Prop or un-prop a rap. Toggled — calling it twice removes the prop.</p>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+      <tr><td>proppable_type</td><td>string</td><td>Always "Rap"</td></tr>
+      <tr><td>proppable_id</td><td>integer</td><td>The rap's ID</td></tr>
+    </table>
+    <pre>{
+  "success": true,
+  "action": "create",
+  "reputation": 4644
+}</pre>
+  </div>
+
+  <!-- Feedbacks -->
+  <div class="endpoint">
+    <span class="method post">POST</span><span class="url">/api/feedbacks</span>
+    <span class="tag auth">requires auth</span>
+    <p class="desc">Submit a score breakdown for a rap.</p>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+      <tr><td>feedback[rap_id]</td><td>integer</td><td></td></tr>
+      <tr><td>feedback[lyrics_score]</td><td>1–5</td><td></td></tr>
+      <tr><td>feedback[delivery_score]</td><td>1–5</td><td></td></tr>
+      <tr><td>feedback[production_score]</td><td>1–5</td><td></td></tr>
+    </table>
+    <pre>{
+  "replaced": false,
+  "feedback": "{\"lyrics_score\":5,\"production_score\":5,\"overall_score\":5.0,\"rap_id\":1496831}",
+  "feedback_request_fulfilled": false
+}</pre>
+  </div>
+
+  <!-- Update Bio -->
+  <div class="endpoint">
+    <span class="method put">PUT</span><span class="url">/api/users</span>
+    <span class="tag auth">requires auth</span>
+    <p class="desc">Update the authenticated user's profile description.</p>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+      <tr><td>user[description]</td><td>string</td><td>Plain text bio</td></tr>
+    </table>
+  </div>
+
+  <!-- Save Rap -->
+  <div class="endpoint">
+    <span class="method post">POST</span><span class="url">/editor/save</span>
+    <span class="tag auth">requires auth</span>
+    <p class="desc">Publish a rap to the authenticated user's profile.</p>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Notes</th></tr>
+      <tr><td>rap[title]</td><td>string</td><td></td></tr>
+      <tr><td>rap[lyrics]</td><td>string</td><td></td></tr>
+      <tr><td>rap[visibility]</td><td>string</td><td>public | unlisted | private</td></tr>
+    </table>
+  </div>
+
+  <!-- View Profile -->
+  <div class="endpoint">
+    <span class="method get">GET</span><span class="url">/users/{username}</span>
+    <p class="desc">Returns the full HTML profile page for a user. Not a JSON endpoint — returns HTML. Rappad sets <code>X-Frame-Options: sameorigin</code> so direct iframing is blocked.</p>
+  </div>
+
+  <h2>Notes</h2>
+  <p>All POST/PUT requests must include these headers:</p>
+  <pre>x-csrf-token: {token from login}
+x-requested-with: XMLHttpRequest
+content-type: application/x-www-form-urlencoded; charset=UTF-8</pre>
+  <p>The CSRF token is tied to your session. If your session expires, re-login to get a fresh token. Rappad is built on Ruby on Rails — the CSRF system is standard Rails <code>authenticity_token</code> under the hood.</p>
+
+</div>
+</body>
+</html>
