@@ -139,9 +139,8 @@ async function viewProfile() {
   const card = document.getElementById("profile-card");
   const iframe = document.getElementById("profile-iframe");
   showMsg("profile-msg", "Loading\u2026", true);
-  iframe.src = `https://www.rappad.co/users/${username}`;
+  iframe.src = `/api/proxy?action=profile&username=${encodeURIComponent(username)}`;
   iframe.onload = () => { document.getElementById("profile-msg").style.display = "none"; };
-  iframe.onerror = () => showMsg("profile-msg", "Could not load profile.", false);
   card.style.display = "block";
 }
 

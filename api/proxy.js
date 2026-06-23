@@ -40,8 +40,27 @@ async function parseBody(req) {
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
+
+  // GET handler for profile iframe
+  if (req.method === "GET") {
+    const { action, username } = req.query || {};
+    if (action === "profile" && username) {
+      const jar = new CookieJar();
+      const client = fetchCookie(fetch, jar);
+      const r = await client(`${BASE}/users/${username}`, {
+        method: "GET",
+        headers: { ...COMMON_HEADERS, "accept": "text/html", "sec-fetch-mode": "navigate" },
+      });
+      if (r.status === 404) return res.status(404).send("User not found");
+      let html = await r.text();
+      html = html.replace(/(src|href)="\//g, `$1="${BASE}/`);
+      res.setHeader("Content-Type", "text/html");
+      return res.send(html);
+    }
+    return res.status(400).json({ error: "Bad request" });
+  }
 
   const body = await parseBody(req);
   const { action, sessionId, csrfToken } = body;
@@ -50,31 +69,6 @@ module.exports = async (req, res) => {
   const client = getClient(sessionId);
 
   try {
-    if (action === "profile") {
-      const { username } = body;
-      const r = await client(`${BASE}/users/${username}`, {
-        method: "GET",
-        headers: { ...COMMON_HEADERS, "accept": "text/html", "sec-fetch-mode": "navigate" },
-      });
-      const html = await r.text();
-      if (r.status === 404) return res.json({ success: false, error: "User not found" });
-
-      const get = (re, i = 1) => { const m = html.match(re); return m ? m[i].trim() : null; };
-      const getAll = (re) => { const results = []; let m; const g = new RegExp(re.source, "g"); while ((m = g.exec(html)) !== null) results.push({ title: m[1].trim(), id: m[2].trim() }); return results; };
-
-      const name        = get(/class="profile-username"[^>]*>([^<]+)/);
-      const reputation  = get(/data-rr="(\d+)"/);
-      const description = get(/class="profile-description"[^>]*>([\s\S]*?)<\/div>/)?.replace(/<[^>]+>/g, "").trim();
-      const picture     = get(/class="profile-picture"[\s\S]*?<img[^>]+src="([^"]+)"/);
-      const location    = get(/class="profile-location"[^>]*>([^<]+)/);
-      const raps        = getAll(/<a class="rap-link"[^>]*>([^<]+)<\/a>[\s\S]*?data-rap-id="(\d+)"/);
-      const rapCount    = get(/class="raps-count"[^>]*>(\d+)/);
-      const followers   = get(/class="followers-count"[^>]*>(\d+)/);
-      const following   = get(/class="following-count"[^>]*>(\d+)/);
-
-      return res.json({ success: true, name, reputation, description, picture: picture ? (picture.startsWith("http") ? picture : `${BASE}${picture}`) : null, location, rapCount, followers, following, recentRaps: raps.slice(0, 5) });
-    }
-
     if (action === "register") {
       const { email, password } = body;
       const csrf = await getCsrfToken(client);
