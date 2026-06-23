@@ -50,6 +50,31 @@ module.exports = async (req, res) => {
   const client = getClient(sessionId);
 
   try {
+    if (action === "profile") {
+      const { username } = body;
+      const r = await client(`${BASE}/users/${username}`, {
+        method: "GET",
+        headers: { ...COMMON_HEADERS, "accept": "text/html", "sec-fetch-mode": "navigate" },
+      });
+      const html = await r.text();
+      if (r.status === 404) return res.json({ success: false, error: "User not found" });
+
+      const get = (re, i = 1) => { const m = html.match(re); return m ? m[i].trim() : null; };
+      const getAll = (re) => { const results = []; let m; const g = new RegExp(re.source, "g"); while ((m = g.exec(html)) !== null) results.push({ title: m[1].trim(), id: m[2].trim() }); return results; };
+
+      const name        = get(/class="profile-username"[^>]*>([^<]+)/);
+      const reputation  = get(/data-rr="(\d+)"/);
+      const description = get(/class="profile-description"[^>]*>([\s\S]*?)<\/div>/)?.replace(/<[^>]+>/g, "").trim();
+      const picture     = get(/class="profile-picture"[\s\S]*?<img[^>]+src="([^"]+)"/);
+      const location    = get(/class="profile-location"[^>]*>([^<]+)/);
+      const raps        = getAll(/<a class="rap-link"[^>]*>([^<]+)<\/a>[\s\S]*?data-rap-id="(\d+)"/);
+      const rapCount    = get(/class="raps-count"[^>]*>(\d+)/);
+      const followers   = get(/class="followers-count"[^>]*>(\d+)/);
+      const following   = get(/class="following-count"[^>]*>(\d+)/);
+
+      return res.json({ success: true, name, reputation, description, picture: picture ? (picture.startsWith("http") ? picture : `${BASE}${picture}`) : null, location, rapCount, followers, following, recentRaps: raps.slice(0, 5) });
+    }
+
     if (action === "register") {
       const { email, password } = body;
       const csrf = await getCsrfToken(client);
