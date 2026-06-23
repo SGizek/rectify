@@ -50,6 +50,26 @@ module.exports = async (req, res) => {
   const client = getClient(sessionId);
 
   try {
+    if (action === "register") {
+      const { email, password } = body;
+      const csrf = await getCsrfToken(client);
+      if (!csrf) return res.json({ success: false, error: "Could not get CSRF token" });
+
+      const payload = new URLSearchParams({
+        utf8: "✓",
+        "user[email]": email,
+        "user[password]": password,
+        commit: "Create Account",
+      });
+
+      const r = await client(`${BASE}/users`, {
+        method: "POST",
+        headers: { ...COMMON_HEADERS, "content-type": "application/x-www-form-urlencoded; charset=UTF-8", "accept": "*/*;q=0.5, text/javascript, application/javascript", "x-csrf-token": csrf, referer: `${BASE}/explore` },
+        body: payload.toString(),
+      });
+      return res.json(await r.json());
+    }
+
     if (action === "login") {
       const { username, password } = body;
       const csrf = await getCsrfToken(client);

@@ -39,6 +39,16 @@
     <input type="password" id="password" placeholder="Password">
     <button onclick="login()">Log In</button>
     <div class="msg" id="login-msg"></div>
+    <p style="text-align:center;margin-top:14px;font-size:0.85rem;color:#aaa">No account? <a href="#" onclick="toggleAuth()" style="color:#ff4d4d">Sign Up</a></p>
+  </div>
+
+  <div id="register-section" style="display:none">
+    <h2>Create Rappad Account</h2>
+    <input type="email" id="reg-email" placeholder="Email">
+    <input type="password" id="reg-password" placeholder="Password">
+    <button onclick="register()">Create Account</button>
+    <div class="msg" id="register-msg"></div>
+    <p style="text-align:center;margin-top:14px;font-size:0.85rem;color:#aaa">Have an account? <a href="#" onclick="toggleAuth()" style="color:#ff4d4d">Log In</a></p>
   </div>
 
   <hr class="divider">
@@ -105,6 +115,45 @@ function showMsg(id, text, ok) {
   el.textContent = text;
   el.className = "msg " + (ok ? "ok" : "err");
   el.style.display = "block";
+}
+
+function toggleAuth() {
+  const login = document.getElementById("login-section");
+  const reg = document.getElementById("register-section");
+  login.style.display = login.style.display === "none" ? "block" : "none";
+  reg.style.display = reg.style.display === "none" ? "block" : "none";
+}
+
+async function register() {
+  const email = document.getElementById("reg-email").value.trim();
+  const password = document.getElementById("reg-password").value;
+  if (!email || !password) return showMsg("register-msg", "Enter email and password.", false);
+
+  showMsg("register-msg", "Creating account…", true);
+
+  const res = await fetch(`${PROXY}/api/proxy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "register", email, password, sessionId: SID }),
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    csrfToken = data.csrf_token;
+    loggedInUser = data.username;
+    document.getElementById("info-user").textContent = data.username;
+    document.getElementById("info-rep").textContent = data.reputation;
+    document.getElementById("user-info").style.display = "block";
+    document.getElementById("save-rap-section").style.display = "block";
+    document.getElementById("prop-section").style.display = "block";
+    document.getElementById("bio-section").style.display = "block";
+    document.getElementById("feedback-section").style.display = "block";
+    document.getElementById("register-section").style.display = "none";
+    document.getElementById("login-section").style.display = "none";
+  } else {
+    showMsg("register-msg", data.error || "Registration failed.", false);
+  }
 }
 
 async function login() {
