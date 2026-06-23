@@ -10,7 +10,7 @@ app.whenReady().then(() => {
     },
   });
 
-  win.loadURL("https://rectify-omega.vercel.app");
+  win.loadURL("https://rectify-lemon.vercel.app");
   win.setMenuBarVisibility(false);
 });
 
